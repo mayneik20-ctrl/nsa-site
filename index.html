@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NSA — National Sports Association</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+<div class="bg-flourish"></div>
+<div class="brand-header" id="brand-header"></div>
+<header>
+  <div class="header-inner">
+    <div class="switcher" id="switcher"></div>
+    <nav class="tabs" id="tabs"></nav>
+    <div id="header-action"></div>
+  </div>
+</header>
+<main id="main"></main>
+<footer class="site-footer" id="site-footer"></footer>
+<div id="admin-gate-root"></div>
+<div id="toast-root" class="toast-root"></div>
+
+<div id="boot-screen" class="boot-screen">
+  <div class="boot-inner">
+    <div class="boot-spinner"></div>
+    <p id="boot-message">Chargement des données…</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/app.js"></script>
+</body>
+</html>
