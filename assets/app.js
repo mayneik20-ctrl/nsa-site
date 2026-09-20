@@ -687,7 +687,7 @@ function renderTeamDetail(main, team) {
         : '<p style="color:var(--textDim);margin:4px 0 0;display:flex;align-items:center;gap:6px">'+esc(team.abbreviation||"No abbreviation set")+' <span class="icon-btn" id="edit-team-abbr" style="cursor:pointer">'+icon("edit",12)+'</span></p>')
     : '';
   head.innerHTML = crestBlock +
-    '<div style="flex:1;min-width:200px">'+nameHtml+'<p style="color:var(--textDim);margin:4px 0 0">'+esc(team.institution)+'</p>'+abbrHtml+'</div>' +
+    '<div style="flex:1;min-width:200px">'+nameHtml+abbrHtml+'</div>' +
     (state.isAdmin ? '<button class="btn btn-danger" id="delete-team">'+icon("trash",15)+' Remove team</button>' : '');
   wrap.appendChild(head);
 
