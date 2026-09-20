@@ -58,12 +58,12 @@
 
   /* HERO SLIDER */
   .hero { position: relative; border-radius: 20px; overflow: hidden; min-height: 260px; background: var(--gradient); }
-  .hero.has-image { background: var(--surface); border: 1px solid var(--border); }
+  .hero.has-image { background: var(--surface); border: 1px solid var(--border); min-height: 0; }
   .hero-empty { padding: 64px 40px; display: flex; flex-direction: column; justify-content: flex-end; min-height: 260px; }
   .hero-empty span.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: rgba(255,255,255,0.85); }
   .hero-empty h1 { font-size: clamp(26px,4vw,42px); color: #fff; margin: 8px 0 0; max-width: 640px; line-height: 1.05; }
   .hero-empty p { color: rgba(255,255,255,0.8); margin-top: 10px; max-width: 520px; }
-  .hero img { width: 100%; height: 340px; object-fit: cover; display: block; }
+  .hero img { width: 100%; aspect-ratio: 16 / 9; max-height: 75vh; object-fit: contain; display: block; background: #000; }
   .hero-overlay { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.65) 0%, transparent 55%); pointer-events: none; }
   .hero-caption { position: absolute; left: 24px; bottom: 22px; right: 24px; }
   .hero-caption .tag { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--secondary); }
@@ -144,7 +144,7 @@
 
   .slider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
   .slider-thumb { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-  .slider-thumb img { width: 100%; height: 90px; object-fit: cover; display: block; }
+  .slider-thumb img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; display: block; }
   .slider-thumb .remove { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(0,0,0,0.6); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .slider-thumb .cap { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; padding: 3px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
