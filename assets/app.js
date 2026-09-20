@@ -560,7 +560,7 @@ function renderTopScorers(teams, container, editable) {
     addPanel.innerHTML =
       '<h3 style="margin-bottom:10px">Add a player</h3>' +
       '<div class="field-row">' +
-        '<select id="ts-team" style="flex:1 1 180px">' + cur().teams.map(t => '<option value="'+t.id+'">'+esc(t.name)+'</option>').join("") + '</select>' +
+        '<select id="ts-team" style="flex:1 1 180px">' + cur().teams.map(t => '<option value="'+t.id+'">'+esc(t.name)+(t.institution && t.institution!==t.name ? " — "+esc(t.institution) : "")+'</option>').join("") + '</select>' +
         '<input type="text" id="ts-first" placeholder="First name" style="flex:1 1 130px"/>' +
         '<input type="text" id="ts-last" placeholder="Last name" style="flex:1 1 130px"/>' +
         '<input type="number" id="ts-number" placeholder="Jersey #" style="flex:0 0 90px"/>' +
@@ -596,7 +596,7 @@ function renderTopScorers(teams, container, editable) {
         '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>' +
         '<div class="scorer-info" style="display:flex;flex-direction:column;gap:6px">' +
           '<div style="display:flex;gap:6px"><input type="text" id="sc-fn" value="'+esc(p.firstName)+'" style="flex:1;font-size:13px;padding:6px 8px"/><input type="text" id="sc-ln" value="'+esc(p.lastName)+'" style="flex:1;font-size:13px;padding:6px 8px"/></div>' +
-          '<select id="sc-team" style="font-size:12.5px;padding:6px 8px">' + cur().teams.map(t => '<option value="'+t.id+'"'+(t.id===p.teamId?" selected":"")+'>'+esc(t.name)+'</option>').join("") + '</select>' +
+          '<select id="sc-team" style="font-size:12.5px;padding:6px 8px">' + cur().teams.map(t => '<option value="'+t.id+'"'+(String(t.id)===String(p.teamId)?" selected":"")+'>'+esc(t.name)+(t.institution && t.institution!==t.name ? " — "+esc(t.institution) : "")+'</option>').join("") + '</select>' +
           '<select id="sc-position" style="font-size:12.5px;padding:6px 8px">' + POSITIONS.map(pos => '<option value="'+pos+'"'+(pos===p.position?" selected":"")+'>'+pos+'</option>').join("") + '</select>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:6px">' +
@@ -621,7 +621,7 @@ function renderTopScorers(teams, container, editable) {
         player.lastName = patch.last_name;
         player.goals = patch.goals;
         player.position = patch.position;
-        if (newTeamId !== p.teamId) {
+        if (String(newTeamId) !== String(p.teamId)) {
           oldTeam.players = oldTeam.players.filter(pl => pl.id !== p.id);
           player.teamId = newTeamId;
           findTeam(newTeamId).players.push(player);
