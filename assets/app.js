@@ -551,8 +551,10 @@ function renderTeamsGrid(teams, container, limit) {
 
 /* ---------------- RENDU : MEILLEURS BUTEURS ---------------- */
 let editingScorerId = null;
+function scorerAvatarHtml(p) {
   if (p.photoUrl) return '<div class="scorer-avatar" style="overflow:hidden;padding:0"><img src="'+p.photoUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>';
   return '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>';
+}
 function renderTopScorers(teams, container, editable) {
   const scorers = computeTopScorers(teams);
   container.innerHTML = "";
