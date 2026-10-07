@@ -960,7 +960,7 @@ function renderTieCard(tie, roundLabel) {
     ) : "") +
     (agg ? (
       '<div class="tie-agg">'+(tie.isSingleMatch ? "Score" : "Aggregate")+': <b>'+agg.aggA+' \u2013 '+agg.aggB+'</b>' +
-      (winnerId && findTeam(winnerId) ? '<div class="tie-winner">'+esc(findTeam(winnerId).name)+' qualifies</div>' : '') +
+      (winnerId && findTeam(winnerId) ? '<div class="tie-winner">'+esc(findTeam(winnerId).name)+(roundLabel === "Final" ? ' wins' : ' qualifies')+'</div>' : '') +
       '</div>'
     ) : "");
 
@@ -1025,7 +1025,7 @@ function vbCardHtml(tie, isFinal, x, y) {
     '<div class="vb-teams-row">' + vbTeamHtml(teamA, "left") + '<span class="vb-vs">VS</span>' + vbTeamHtml(teamB, "right") + '</div>' +
     legsHtml +
     (needsPen ? '<div class="vb-pens-line">PENS ' + vbScoreInput(tie.id+"|pen|scoreA", tie.penalties.scoreA, !state.isAdmin, true) + '<span class="colon">:</span>' + vbScoreInput(tie.id+"|pen|scoreB", tie.penalties.scoreB, !state.isAdmin, true) + '</div>' : '') +
-    (winnerId && findTeam(winnerId) ? '<div class="vb-qualified-tag">'+esc(findTeam(winnerId).name)+' qualifies</div>' : '') +
+    (winnerId && findTeam(winnerId) ? '<div class="vb-qualified-tag">'+esc(findTeam(winnerId).name)+(isFinal ? ' wins' : ' qualifies')+'</div>' : '') +
     '</div>'
   );
 }
