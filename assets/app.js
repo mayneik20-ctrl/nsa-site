@@ -147,6 +147,7 @@ const db = {
       team.players.push({
         id: r.id, teamId: r.team_id, firstName: r.first_name, lastName: r.last_name,
         number: r.number, position: r.position, goals: r.goals, sortOrder: r.sort_order,
+        isScorer: r.is_scorer || false, photoUrl: r.photo_url || null,
       });
     });
     tiesRes.data.forEach(r => {
@@ -197,6 +198,7 @@ const db = {
     return sb.from("players").insert(players.map(p => ({
       id: p.id, team_id: teamId, first_name: p.firstName, last_name: p.lastName,
       number: p.number, position: p.position, goals: p.goals, sort_order: p.sortOrder || 0,
+      is_scorer: p.isScorer || false, photo_url: p.photoUrl || null,
     })));
   },
   updatePlayer(id, patch) { return sb.from("players").update(patch).eq("id", id); },
@@ -357,7 +359,7 @@ function findTieAnywhere(tieId) {
 }
 function computeTopScorers(teams) {
   const all = [];
-  teams.forEach(team => team.players.forEach(p => all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id }))));
+  teams.forEach(team => team.players.forEach(p => { if (p.isScorer) all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id })); }));
   return all.sort((a,b) => b.goals - a.goals).slice(0, 10);
 }
 
@@ -549,6 +551,8 @@ function renderTeamsGrid(teams, container, limit) {
 
 /* ---------------- RENDU : MEILLEURS BUTEURS ---------------- */
 let editingScorerId = null;
+  if (p.photoUrl) return '<div class="scorer-avatar" style="overflow:hidden;padding:0"><img src="'+p.photoUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>';
+  return '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>';
 function renderTopScorers(teams, container, editable) {
   const scorers = computeTopScorers(teams);
   container.innerHTML = "";
@@ -560,12 +564,13 @@ function renderTopScorers(teams, container, editable) {
     addPanel.innerHTML =
       '<h3 style="margin-bottom:10px">Add a player</h3>' +
       '<div class="field-row">' +
-        '<select id="ts-team" style="flex:1 1 180px">' + cur().teams.map(t => '<option value="'+t.id+'">'+esc(t.name)+(t.institution && t.institution!==t.name ? " — "+esc(t.institution) : "")+'</option>').join("") + '</select>' +
+        '<select id="ts-team" style="flex:1 1 180px">' + cur().teams.map(t => '<option value="'+t.id+'">'+esc(t.name)+'</option>').join("") + '</select>' +
         '<input type="text" id="ts-first" placeholder="First name" style="flex:1 1 130px"/>' +
         '<input type="text" id="ts-last" placeholder="Last name" style="flex:1 1 130px"/>' +
         '<input type="number" id="ts-number" placeholder="Jersey #" style="flex:0 0 90px"/>' +
         '<select id="ts-position" style="flex:0 0 150px">' + POSITIONS.map(p => '<option value="'+p+'">'+p+'</option>').join("") + '</select>' +
         '<input type="number" id="ts-goals" placeholder="Goals" style="flex:0 0 90px"/>' +
+        '<input type="file" id="ts-photo" accept="image/*" style="flex:0 0 170px;font-size:12px"/>' +
         '<button class="btn btn-primary" id="ts-add-btn">'+icon("plus",15)+' Add player</button>' +
       '</div>';
     container.appendChild(addPanel);
@@ -579,7 +584,9 @@ function renderTopScorers(teams, container, editable) {
       const position = document.getElementById("ts-position").value;
       const goals = Number(document.getElementById("ts-goals").value) || 0;
       if (!firstName) return;
-      const player = { id: team.id+"-p"+Date.now(), firstName, lastName, number, position, goals, sortOrder: team.players.length };
+      const photoFile = document.getElementById("ts-photo").files[0];
+      const photoUrl = photoFile ? await uploadImageOrNull(photoFile, "scorers") : null;
+      const player = { id: team.id+"-sc"+Date.now(), firstName, lastName, number, position, goals, sortOrder: team.players.length, isScorer: true, photoUrl };
       const ok = await run(db.insertPlayers([player], team.id), "Joueur non ajouté");
       if (!ok) return;
       team.players.push(player);
@@ -593,11 +600,12 @@ function renderTopScorers(teams, container, editable) {
     if (editable && editingScorerId === p.id) {
       row.innerHTML =
         '<div class="scorer-rank">'+(i+1)+'</div>' +
-        '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>' +
+        scorerAvatarHtml(p) +
         '<div class="scorer-info" style="display:flex;flex-direction:column;gap:6px">' +
           '<div style="display:flex;gap:6px"><input type="text" id="sc-fn" value="'+esc(p.firstName)+'" style="flex:1;font-size:13px;padding:6px 8px"/><input type="text" id="sc-ln" value="'+esc(p.lastName)+'" style="flex:1;font-size:13px;padding:6px 8px"/></div>' +
-          '<select id="sc-team" style="font-size:12.5px;padding:6px 8px">' + cur().teams.map(t => '<option value="'+t.id+'"'+(String(t.id)===String(p.teamId)?" selected":"")+'>'+esc(t.name)+(t.institution && t.institution!==t.name ? " — "+esc(t.institution) : "")+'</option>').join("") + '</select>' +
+          '<select id="sc-team" style="font-size:12.5px;padding:6px 8px">' + cur().teams.map(t => '<option value="'+t.id+'"'+(String(t.id)===String(p.teamId)?" selected":"")+'>'+esc(t.name)+'</option>').join("") + '</select>' +
           '<select id="sc-position" style="font-size:12.5px;padding:6px 8px">' + POSITIONS.map(pos => '<option value="'+pos+'"'+(pos===p.position?" selected":"")+'>'+pos+'</option>').join("") + '</select>' +
+          '<input type="file" id="sc-photo" accept="image/*" style="font-size:11.5px"/>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:6px">' +
           '<input type="number" id="sc-goals" value="'+p.goals+'" style="width:52px;padding:6px 8px;font-size:13px;text-align:center"/>' +
@@ -608,12 +616,15 @@ function renderTopScorers(teams, container, editable) {
         const newTeamId = row.querySelector("#sc-team").value;
         const oldTeam = findTeam(p.teamId);
         const player = oldTeam.players.find(pl => pl.id === p.id);
+        const photoFile = row.querySelector("#sc-photo").files[0];
+        const photoUrl = photoFile ? await uploadImageOrNull(photoFile, "scorers") : p.photoUrl;
         const patch = {
           first_name: row.querySelector("#sc-fn").value,
           last_name: row.querySelector("#sc-ln").value,
           goals: Number(row.querySelector("#sc-goals").value) || 0,
           position: row.querySelector("#sc-position").value,
           team_id: newTeamId,
+          photo_url: photoUrl,
         };
         const ok = await run(db.updatePlayer(p.id, patch), "Buteur non enregistré");
         if (!ok) return;
@@ -621,6 +632,7 @@ function renderTopScorers(teams, container, editable) {
         player.lastName = patch.last_name;
         player.goals = patch.goals;
         player.position = patch.position;
+        player.photoUrl = photoUrl;
         if (String(newTeamId) !== String(p.teamId)) {
           oldTeam.players = oldTeam.players.filter(pl => pl.id !== p.id);
           player.teamId = newTeamId;
@@ -632,8 +644,8 @@ function renderTopScorers(teams, container, editable) {
     } else {
       row.innerHTML =
         '<div class="scorer-rank">'+(i+1)+'</div>' +
-        '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>' +
-        '<div class="scorer-info"><div style="font-weight:700;font-size:15px">'+esc(p.firstName)+' '+esc(p.lastName)+'</div><div style="color:var(--textDim);font-size:12.5px">'+esc(p.institution)+'</div></div>' +
+        scorerAvatarHtml(p) +
+        '<div class="scorer-info"><div style="font-weight:700;font-size:15px">'+esc(p.firstName)+' '+esc(p.lastName)+'</div><div style="color:var(--textDim);font-size:12.5px">'+esc(p.teamName)+'</div></div>' +
         '<div class="scorer-goals"><div class="n" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">'+soccerBallIcon(28)+p.goals+'</div><div class="label">GOALS</div></div>' +
         (editable ? (
           '<span class="icon-btn" id="edit-sc-'+p.id+'" style="cursor:pointer;margin-left:8px">'+icon("edit",14)+'</span>' +
@@ -693,7 +705,7 @@ function renderTeamDetail(main, team) {
 
   const grid = document.createElement("div");
   grid.className = "players-grid";
-  team.players.forEach(p => {
+  team.players.filter(p => !p.isScorer).forEach(p => {
     const row = document.createElement("div");
     row.className = "player-row";
     if (state.editingPlayerId === p.id) {
