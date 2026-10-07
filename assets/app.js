@@ -263,6 +263,70 @@ async function uploadImageOrNull(file, folder) {
   }
 }
 
+/* Recadre une image au format 16:9 avant l'envoi, pour que tous les sliders
+   (High School et University) gardent exactement la même taille partout. */
+function cropImageTo16x9(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const targetRatio = 16 / 9;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      const srcRatio = sw / sh;
+      if (srcRatio > targetRatio) {
+        sw = sh * targetRatio;
+        sx = (img.width - sw) / 2;
+      } else if (srcRatio < targetRatio) {
+        sh = sw / targetRatio;
+        sy = (img.height - sh) / 2;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = 1920; canvas.height = 1080;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(objectUrl);
+        if (!blob) { reject(new Error("Recadrage impossible")); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+      }, "image/jpeg", 0.92);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image invalide")); };
+    img.src = objectUrl;
+  });
+}
+
+/* Recadre une image au format 16:9 avant l'envoi, pour que tous les sliders
+   (High School et University) gardent exactement la même taille partout. */
+function cropImageTo16x9(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const targetRatio = 16 / 9;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      const srcRatio = sw / sh;
+      if (srcRatio > targetRatio) {
+        sw = sh * targetRatio;
+        sx = (img.width - sw) / 2;
+      } else if (srcRatio < targetRatio) {
+        sh = sw / targetRatio;
+        sy = (img.height - sh) / 2;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = 1920; canvas.height = 1080;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(objectUrl);
+        if (!blob) { reject(new Error("Recadrage impossible")); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+      }, "image/jpeg", 0.92);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image invalide")); };
+    img.src = objectUrl;
+  });
+}
+
 /* ---------------- ICÔNES (SVG inline, sans dépendance) ---------------- */
 const ICONS = {
   user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
@@ -1294,7 +1358,9 @@ function renderSlidersTab(main) {
       if (!file) return;
       if (cur().sliders.length >= 5) return;
       const caption = document.getElementById("slide-caption").value;
-      const url = await uploadImageOrNull(file, "sliders/" + PREFIX[state.competition]);
+      let fileToUpload = file;
+      try { fileToUpload = await cropImageTo16x9(file); } catch (err) { console.error("crop", err); }
+      const url = await uploadImageOrNull(fileToUpload, "sliders/" + PREFIX[state.competition]);
       if (!url) return;
       const slide = { id: "slide-"+Date.now(), url, caption };
       const ok = await run(db.insertSlider(slide, state.competition, cur().sliders.length), "Image non enregistrée");
