@@ -148,6 +148,7 @@ const db = {
         id: r.id, teamId: r.team_id, firstName: r.first_name, lastName: r.last_name,
         number: r.number, position: r.position, goals: r.goals, sortOrder: r.sort_order,
         isScorer: r.is_scorer || false, photoUrl: r.photo_url || null,
+        isAssister: r.is_assister || false, assists: r.assists || 0,
       });
     });
     tiesRes.data.forEach(r => {
@@ -199,6 +200,7 @@ const db = {
       id: p.id, team_id: teamId, first_name: p.firstName, last_name: p.lastName,
       number: p.number, position: p.position, goals: p.goals, sort_order: p.sortOrder || 0,
       is_scorer: p.isScorer || false, photo_url: p.photoUrl || null,
+      is_assister: p.isAssister || false, assists: p.assists || 0,
     })));
   },
   updatePlayer(id, patch) { return sb.from("players").update(patch).eq("id", id); },
@@ -426,6 +428,21 @@ function computeTopScorers(teams) {
   teams.forEach(team => team.players.forEach(p => { if (p.isScorer) all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id })); }));
   return all.sort((a,b) => b.goals - a.goals).slice(0, 10);
 }
+function computeTopAssists(teams) {
+  const all = [];
+  teams.forEach(team => team.players.forEach(p => { if (p.isAssister) all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id })); }));
+  return all.sort((a,b) => b.assists - a.assists).slice(0, 10);
+}
+function computeTopAssists(teams) {
+  const all = [];
+  teams.forEach(team => team.players.forEach(p => { if (p.isAssister) all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id })); }));
+  return all.sort((a,b) => b.assists - a.assists).slice(0, 10);
+}
+function computeTopAssists(teams) {
+  const all = [];
+  teams.forEach(team => team.players.forEach(p => { if (p.isAssister) all.push(Object.assign({}, p, { teamName: team.name, institution: team.institution, teamId: team.id })); }));
+  return all.sort((a,b) => b.assists - a.assists).slice(0, 10);
+}
 
 /* Enregistrement différé du tableau final : l'admin peut taper plusieurs
    scores d'affilée, on n'écrit en base qu'une fois la frappe terminée. */
@@ -475,14 +492,14 @@ function renderHeader() {
 
   const tabsEl = document.getElementById("tabs");
   tabsEl.innerHTML = "";
-  const pub = [["home","Home"],["teams","Teams"],["scorers","Top Scorers"]];
+  const pub = [["home","Home"],["teams","Teams"],["scorers","Top Scorers"],["assists","Top Assists"]];
   const adm = [["bracket","Match & Bracket"],["manage-teams","Manage Teams"],["sliders-admin","Sliders"],["settings","Settings"]];
   const list = state.isAdmin ? pub.concat(adm) : pub;
   list.forEach(([key,label]) => {
     const b = document.createElement("button");
     b.textContent = label;
     b.className = state.tab === key ? "active" : "";
-    b.onclick = () => { state.tab = key; state.selectedTeamId = null; editingScorerId = null; renderAll(); };
+    b.onclick = () => { state.tab = key; state.selectedTeamId = null; editingScorerId = null; editingAssisterId = null; renderAll(); };
     tabsEl.appendChild(b);
   });
 
@@ -615,6 +632,7 @@ function renderTeamsGrid(teams, container, limit) {
 
 /* ---------------- RENDU : MEILLEURS BUTEURS ---------------- */
 let editingScorerId = null;
+let editingAssisterId = null;
 function scorerAvatarHtml(p) {
   if (p.photoUrl) return '<div class="scorer-avatar" style="overflow:hidden;padding:0"><img src="'+p.photoUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>';
   return '<div class="scorer-avatar">'+icon("user",20,"var(--textDim)")+'</div>';
@@ -771,7 +789,7 @@ function renderTeamDetail(main, team) {
 
   const grid = document.createElement("div");
   grid.className = "players-grid";
-  team.players.filter(p => !p.isScorer).forEach(p => {
+  team.players.filter(p => !p.isScorer && !p.isAssister).forEach(p => {
     const row = document.createElement("div");
     row.className = "player-row";
     if (state.editingPlayerId === p.id) {
@@ -903,6 +921,124 @@ function renderTeamsTab(main) {
 function renderScorersTab(main) {
   main.innerHTML = '<div class="section-title"><span class="dot">'+icon("crown",16,"#f5c542")+'</span>'+esc(compLabel())+' Top Scorers</div><div id="scorers-tab-list"></div>';
   renderTopScorers(cur().teams, document.getElementById("scorers-tab-list"), state.isAdmin);
+}
+
+function renderAssistsTab(main) {
+  main.innerHTML = '<div class="section-title"><span class="dot">'+icon("crown",16,"#60a5fa")+'</span>'+esc(compLabel())+' Top Assists</div><div id="assists-tab-list"></div>';
+  renderTopAssists(cur().teams, document.getElementById("assists-tab-list"), state.isAdmin);
+}
+
+function renderTopAssists(teams, container, editable) {
+  const assisters = computeTopAssists(teams);
+  container.innerHTML = "";
+
+  if (editable) {
+    const addPanel = document.createElement("div");
+    addPanel.className = "panel";
+    addPanel.style.marginBottom = "16px";
+    addPanel.innerHTML =
+      '<h3 style="margin-bottom:10px">Add a player</h3>' +
+      '<div class="field-row">' +
+        '<select id="ta-team" style="flex:1 1 180px">' + cur().teams.map(t => '<option value="'+t.id+'">'+esc(t.name)+'</option>').join("") + '</select>' +
+        '<input type="text" id="ta-first" placeholder="First name" style="flex:1 1 130px"/>' +
+        '<input type="text" id="ta-last" placeholder="Last name" style="flex:1 1 130px"/>' +
+        '<input type="number" id="ta-number" placeholder="Jersey #" style="flex:0 0 90px"/>' +
+        '<select id="ta-position" style="flex:0 0 150px">' + POSITIONS.map(p => '<option value="'+p+'">'+p+'</option>').join("") + '</select>' +
+        '<input type="number" id="ta-assists" placeholder="Assists" style="flex:0 0 90px"/>' +
+        '<input type="file" id="ta-photo" accept="image/*" style="flex:0 0 170px;font-size:12px"/>' +
+        '<button class="btn btn-primary" id="ta-add-btn">'+icon("plus",15)+' Add player</button>' +
+      '</div>';
+    container.appendChild(addPanel);
+    document.getElementById("ta-add-btn").onclick = async () => {
+      const teamId = document.getElementById("ta-team").value;
+      const team = findTeam(teamId);
+      if (!team) return;
+      const firstName = document.getElementById("ta-first").value.trim();
+      const lastName = document.getElementById("ta-last").value.trim();
+      const number = Number(document.getElementById("ta-number").value) || 0;
+      const position = document.getElementById("ta-position").value;
+      const assists = Number(document.getElementById("ta-assists").value) || 0;
+      if (!firstName) return;
+      const photoFile = document.getElementById("ta-photo").files[0];
+      const photoUrl = photoFile ? await uploadImageOrNull(photoFile, "assisters") : null;
+      const player = { id: team.id+"-as"+Date.now(), firstName, lastName, number, position, goals: 0, assists, sortOrder: team.players.length, isAssister: true, photoUrl };
+      const ok = await run(db.insertPlayers([player], team.id), "Joueur non ajouté");
+      if (!ok) return;
+      team.players.push(player);
+      renderAll();
+    };
+  }
+
+  assisters.forEach((p, i) => {
+    const row = document.createElement("div");
+    row.className = "scorer-row" + (i === 0 ? " top" : "");
+    if (editable && editingAssisterId === p.id) {
+      row.innerHTML =
+        '<div class="scorer-rank">'+(i+1)+'</div>' +
+        scorerAvatarHtml(p) +
+        '<div class="scorer-info" style="display:flex;flex-direction:column;gap:6px">' +
+          '<div style="display:flex;gap:6px"><input type="text" id="as-fn" value="'+esc(p.firstName)+'" style="flex:1;font-size:13px;padding:6px 8px"/><input type="text" id="as-ln" value="'+esc(p.lastName)+'" style="flex:1;font-size:13px;padding:6px 8px"/></div>' +
+          '<select id="as-team" style="font-size:12.5px;padding:6px 8px">' + cur().teams.map(t => '<option value="'+t.id+'"'+(String(t.id)===String(p.teamId)?" selected":"")+'>'+esc(t.name)+'</option>').join("") + '</select>' +
+          '<select id="as-position" style="font-size:12.5px;padding:6px 8px">' + POSITIONS.map(pos => '<option value="'+pos+'"'+(pos===p.position?" selected":"")+'>'+pos+'</option>').join("") + '</select>' +
+          '<input type="file" id="as-photo" accept="image/*" style="font-size:11.5px"/>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<input type="number" id="as-assists" value="'+p.assists+'" style="width:52px;padding:6px 8px;font-size:13px;text-align:center"/>' +
+          '<button class="btn btn-primary btn-sm" id="as-save">'+icon("check",14)+'</button>' +
+        '</div>';
+      container.appendChild(row);
+      row.querySelector("#as-save").onclick = async () => {
+        const newTeamId = row.querySelector("#as-team").value;
+        const oldTeam = findTeam(p.teamId);
+        const player = oldTeam.players.find(pl => pl.id === p.id);
+        const photoFile = row.querySelector("#as-photo").files[0];
+        const photoUrl = photoFile ? await uploadImageOrNull(photoFile, "assisters") : p.photoUrl;
+        const patch = {
+          first_name: row.querySelector("#as-fn").value,
+          last_name: row.querySelector("#as-ln").value,
+          assists: Number(row.querySelector("#as-assists").value) || 0,
+          position: row.querySelector("#as-position").value,
+          team_id: newTeamId,
+          photo_url: photoUrl,
+        };
+        const ok = await run(db.updatePlayer(p.id, patch), "Passeur non enregistré");
+        if (!ok) return;
+        player.firstName = patch.first_name;
+        player.lastName = patch.last_name;
+        player.assists = patch.assists;
+        player.position = patch.position;
+        player.photoUrl = photoUrl;
+        if (String(newTeamId) !== String(p.teamId)) {
+          oldTeam.players = oldTeam.players.filter(pl => pl.id !== p.id);
+          player.teamId = newTeamId;
+          findTeam(newTeamId).players.push(player);
+        }
+        editingAssisterId = null;
+        renderAll();
+      };
+    } else {
+      row.innerHTML =
+        '<div class="scorer-rank">'+(i+1)+'</div>' +
+        scorerAvatarHtml(p) +
+        '<div class="scorer-info"><div style="font-weight:700;font-size:15px">'+esc(p.firstName)+' '+esc(p.lastName)+'</div><div style="color:var(--textDim);font-size:12.5px">'+esc(p.teamName)+'</div></div>' +
+        '<div class="scorer-goals"><div class="n" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">'+soccerBallIcon(28)+p.assists+'</div><div class="label">ASSISTS</div></div>' +
+        (editable ? (
+          '<span class="icon-btn" id="edit-as-'+p.id+'" style="cursor:pointer;margin-left:8px">'+icon("edit",14)+'</span>' +
+          '<span class="icon-btn danger" id="del-as-'+p.id+'" style="cursor:pointer;margin-left:6px">'+icon("trash",14)+'</span>'
+        ) : "");
+      container.appendChild(row);
+      if (editable) {
+        row.querySelector("#edit-as-"+p.id).onclick = () => { editingAssisterId = p.id; renderTopAssists(teams, container, editable); };
+        row.querySelector("#del-as-"+p.id).onclick = async () => {
+          const team = findTeam(p.teamId);
+          const ok = await run(db.deletePlayer(p.id), "Joueur non supprimé");
+          if (!ok) return;
+          if (team) team.players = team.players.filter(pl => pl.id !== p.id);
+          renderAll();
+        };
+      }
+    }
+  });
 }
 
 /* ---------------- RENDU : TABLEAU (onglet admin) ---------------- */
@@ -1575,6 +1711,7 @@ function renderAll() {
   if (state.tab === "home") renderHome(content);
   else if (state.tab === "teams") renderTeamsTab(content);
   else if (state.tab === "scorers") renderScorersTab(content);
+  else if (state.tab === "assists") renderAssistsTab(content);
   else if (state.tab === "bracket" && state.isAdmin) renderBracketTab(content);
   else if (state.tab === "manage-teams" && state.isAdmin) renderManageTeamsTab(content);
   else if (state.tab === "sliders-admin" && state.isAdmin) renderSlidersTab(content);
